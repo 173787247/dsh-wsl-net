@@ -1,0 +1,6 @@
+- insert:
+    - id: dsh-wsl-net
+      name: dsh-wsl-net
+      config:
+        timeoutMs: 20000
+        probeTimeoutMs: 5000
