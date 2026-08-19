@@ -1,9 +1,15 @@
 export const name = "dsh-wsl-net";
-export const inject = ["tools", "systemPrompt"];
+export const inject = ["tools", "systemPrompt", "subprocess"];
 
 export function apply(ctx, config = {}) {
   const timeoutMs = positive(config.timeoutMs, 20_000);
   const probeTimeoutMs = positive(config.probeTimeoutMs, 5_000);
+  const injectChildProxy = config.injectChildProxy !== false;
+
+  if (injectChildProxy) {
+    installChildProxy(ctx.subprocess);
+    console.log("[dsh-wsl-net] injecting NODE_USE_ENV_PROXY into subprocess env");
+  }
 
   ctx.systemPrompt.section({
     name: "tool:net_doctor",
@@ -11,6 +17,9 @@ export function apply(ctx, config = {}) {
     text: [
       "Use the net_doctor tool when DeepSeek API, npm, or other HTTPS calls fail from this agent.",
       "The browser on Windows can work while WSL Node fetch does not: Node 24 ignores HTTP_PROXY unless NODE_USE_ENV_PROXY=1.",
+      injectChildProxy
+        ? "This plugin also sets NODE_USE_ENV_PROXY=1 (and lowercase http_proxy aliases) on bash/npm child processes."
+        : "Child bash/npm processes may still need NODE_USE_ENV_PROXY=1 even when this dsh process has it.",
       "Do not guess proxy URLs or restart random services; read the tool's advice field.",
     ].join(" "),
   });
@@ -82,7 +91,7 @@ export function apply(ctx, config = {}) {
         probes.push(await probe("npm", registry, exec.signal, probeTimeoutMs));
       }
       return {
-        advice: buildAdvice(env, probes, selected),
+        advice: buildAdvice(env, probes, selected, injectChildProxy),
         env,
         probes,
       };
@@ -94,6 +103,55 @@ export function apply(ctx, config = {}) {
         : { card: "generic", title: "Network doctor", content: result.content }
     ),
   });
+}
+
+const PATCHED = Symbol.for("dsh-wsl-net.subprocess-patched");
+
+function installChildProxy(subprocess) {
+  if (subprocess[PATCHED]) return;
+  subprocess[PATCHED] = true;
+  wrapSpawn(subprocess, "spawn");
+  wrapSpawn(subprocess, "spawnTerminal");
+}
+
+function wrapSpawn(subprocess, method) {
+  const original = subprocess[method];
+  if (typeof original !== "function") return;
+  subprocess[method] = function patchedSpawn(spec, ...rest) {
+    return original.call(this, withChildProxyEnv(spec), ...rest);
+  };
+}
+
+function withChildProxyEnv(spec) {
+  if (!spec || typeof spec !== "object") return spec;
+  return {
+    ...spec,
+    env: {
+      ...childProxyEnv(),
+      ...spec.env,
+    },
+  };
+}
+
+function childProxyEnv() {
+  const extra = {};
+  const http = process.env.HTTP_PROXY || process.env.http_proxy;
+  const https = process.env.HTTPS_PROXY || process.env.https_proxy;
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy;
+  if (http) {
+    extra.HTTP_PROXY = http;
+    extra.http_proxy = http;
+  }
+  if (https) {
+    extra.HTTPS_PROXY = https;
+    extra.https_proxy = https;
+  }
+  if (noProxy) {
+    extra.NO_PROXY = noProxy;
+    extra.no_proxy = noProxy;
+  }
+  extra.NODE_USE_ENV_PROXY = process.env.NODE_USE_ENV_PROXY === "0" ? "0" : "1";
+  return extra;
 }
 
 function positive(value, fallback) {
@@ -159,7 +217,7 @@ async function probe(name, url, callerSignal, probeTimeoutMs) {
   }
 }
 
-function buildAdvice(env, probes, target) {
+function buildAdvice(env, probes, target, injectChildProxy) {
   const lines = [];
   const failed = probes.filter((p) => !p.ok);
   if (target === "env") {
@@ -167,6 +225,9 @@ function buildAdvice(env, probes, target) {
   }
   if (proxyOn(env) && !proxyHonored(env)) {
     lines.push("HTTP_PROXY is set but NODE_USE_ENV_PROXY is not 1. Node 24 fetch in this dsh process ignores the proxy. Restart dsh with NODE_USE_ENV_PROXY=1.");
+    if (injectChildProxy) {
+      lines.push("bash/npm children still receive NODE_USE_ENV_PROXY=1 from this plugin.");
+    }
   }
   if (!proxyOn(env) && failed.length > 0) {
     lines.push("No HTTP_PROXY/HTTPS_PROXY in this process. If Clash/V2Ray runs on Windows, WSL often needs http://127.0.0.1:<mixed-port> (localhost forwards to Windows).");
@@ -175,7 +236,12 @@ function buildAdvice(env, probes, target) {
     lines.push("Proxy env is set and Node should honor it, but a probe still failed. Check that the proxy port is listening and allows api.deepseek.com / the npm registry.");
   }
   if (failed.length === 0 && (target === "all" || probes.length > 0)) {
-    lines.push("HTTPS probes from this dsh process succeeded. If a bash/npm child still fails, that child may not inherit NODE_USE_ENV_PROXY.");
+    lines.push("HTTPS probes from this dsh process succeeded.");
+    lines.push(
+      injectChildProxy
+        ? "bash/npm children are given NODE_USE_ENV_PROXY=1 and lowercase http_proxy aliases by this plugin."
+        : "If a bash/npm child still fails, that child may not inherit NODE_USE_ENV_PROXY.",
+    );
   }
   if (env.WSL_DISTRO_NAME) {
     lines.push(`Running in WSL distro ${env.WSL_DISTRO_NAME}; 127.0.0.1 in this process is the WSL side (Windows proxy ports are usually forwarded).`);

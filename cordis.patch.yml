@@ -4,3 +4,4 @@
       config:
         timeoutMs: 20000
         probeTimeoutMs: 5000
+        injectChildProxy: true
