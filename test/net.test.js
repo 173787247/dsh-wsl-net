@@ -20,15 +20,23 @@ describe("readEnv", () => {
     assert.equal(env.HTTP_PROXY, "http://127.0.0.1:7890");
     assert.equal(env.HTTPS_PROXY, "http://127.0.0.1:7890");
     assert.equal(env.NO_PROXY, "");
+    assert.equal(env.ALL_PROXY, "");
     assert.equal(env.NODE_USE_ENV_PROXY, "1");
+  });
+
+  it("reads ALL_PROXY from the lowercase alias", () => {
+    const env = readEnv({ all_proxy: "socks5://127.0.0.1:7891" });
+    assert.equal(env.ALL_PROXY, "socks5://127.0.0.1:7891");
   });
 });
 
 describe("childProxyEnv", () => {
   it("mirrors lowercase aliases and sets NODE_USE_ENV_PROXY=1", () => {
-    const extra = childProxyEnv({ HTTP_PROXY: "http://127.0.0.1:7890" });
+    const extra = childProxyEnv({ HTTP_PROXY: "http://127.0.0.1:7890", ALL_PROXY: "socks5://127.0.0.1:7891" });
     assert.equal(extra.HTTP_PROXY, "http://127.0.0.1:7890");
     assert.equal(extra.http_proxy, "http://127.0.0.1:7890");
+    assert.equal(extra.ALL_PROXY, "socks5://127.0.0.1:7891");
+    assert.equal(extra.all_proxy, "socks5://127.0.0.1:7891");
     assert.equal(extra.NODE_USE_ENV_PROXY, "1");
   });
 
