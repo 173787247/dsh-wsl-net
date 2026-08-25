@@ -8,6 +8,8 @@ DeepSeek Harness **tool** plugin: `net_doctor` diagnoses why HTTPS works in the 
 
 **0.2.0** 还会给 bash / npm 子进程补上 `NODE_USE_ENV_PROXY=1`，以及 Linux 下常见工具会读的小写 `http_proxy` / `https_proxy` 别名。dsh 进程自己的 fetch 仍要靠启动脚本里的 `NODE_USE_ENV_PROXY=1`。
 
+**0.2.1** 报告里会去掉代理 URL 中的 userinfo，并带上 `ALL_PROXY`。
+
 ## Install
 
 ```sh
@@ -28,13 +30,19 @@ Expect `1` and your proxy URL.
 
 ## What it reports
 
-- `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`
+- `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY` (proxy userinfo is redacted)
 - `NODE_USE_ENV_PROXY`
 - optional npm registry
 - GET probes: `https://api.deepseek.com/` and the npm registry (status &lt; 500 counts as reachable, including 401)
 - `advice`: what to restart or set; it does not guess a Clash port
 
-Does not print API keys. Does not change your proxy settings or Clash port.
+Does not print API keys. Redacts `user:password@` in proxy URLs. Does not change your proxy settings or Clash port.
+
+## Test
+
+```sh
+npm test
+```
 
 ## Topics
 
