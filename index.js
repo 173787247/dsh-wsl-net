@@ -2,6 +2,7 @@ import {
   buildAdvice,
   formatReport,
   readEnv,
+  redactEnv,
   withChildProxyEnv,
 } from "./lib/net.js";
 
@@ -99,7 +100,7 @@ export function apply(ctx, config = {}) {
       }
       return {
         advice: buildAdvice(env, probes, selected, injectChildProxy),
-        env,
+        env: redactEnv(env),
         probes,
       };
     },

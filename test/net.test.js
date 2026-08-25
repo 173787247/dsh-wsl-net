@@ -5,6 +5,8 @@ import {
   childProxyEnv,
   formatReport,
   readEnv,
+  redactEnv,
+  redactSecretUrl,
   withChildProxyEnv,
 } from "../lib/net.js";
 
@@ -86,5 +88,23 @@ describe("formatReport", () => {
     assert.match(text, /HTTP_PROXY=http:\/\/127.0.0.1:7890/);
     assert.match(text, /NO_PROXY=\(empty\)/);
     assert.match(text, /ok deepseek/);
+  });
+});
+
+describe("redactSecretUrl", () => {
+  it("strips userinfo from proxy URLs", () => {
+    assert.equal(redactSecretUrl("http://user:pass@127.0.0.1:7890"), "http://***@127.0.0.1:7890/");
+    assert.equal(redactSecretUrl("http://127.0.0.1:7890"), "http://127.0.0.1:7890");
+  });
+});
+
+describe("redactEnv", () => {
+  it("redacts proxy fields and leaves other keys", () => {
+    const env = redactEnv({
+      HTTP_PROXY: "http://user:secret@127.0.0.1:7890",
+      NODE_USE_ENV_PROXY: "1",
+    });
+    assert.equal(env.HTTP_PROXY, "http://***@127.0.0.1:7890/");
+    assert.equal(env.NODE_USE_ENV_PROXY, "1");
   });
 });
