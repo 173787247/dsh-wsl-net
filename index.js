@@ -62,6 +62,7 @@ export function apply(ctx, config = {}) {
               NODE_USE_ENV_PROXY: { type: "string" },
               npm_config_registry: { type: "string" },
               WSL_DISTRO_NAME: { type: "string" },
+              ALL_PROXY: { type: "string" },
             },
           },
           probes: {
