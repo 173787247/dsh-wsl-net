@@ -13,6 +13,12 @@
   "homepage": "https://github.com/173787247/dsh-wsl-net#readme",
   "type": "module",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/net.test.js"
+  },
   "files": [
     "index.js",
     "lib",
