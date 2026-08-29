@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildAdvice,
+  buildFix,
   childProxyEnv,
   formatReport,
   readEnv,
@@ -96,6 +97,43 @@ describe("formatReport", () => {
     assert.match(text, /HTTP_PROXY=http:\/\/127.0.0.1:7890/);
     assert.match(text, /NO_PROXY=\(empty\)/);
     assert.match(text, /ok deepseek/);
+  });
+
+  it("prints fix scripts when present", () => {
+    const text = formatReport({
+      advice: "need proxy",
+      fix: {
+        steps: ["Restart with NODE_USE_ENV_PROXY=1"],
+        scripts: [{ title: "restart-dsh-with-node-proxy", shell: "bash", code: "export NODE_USE_ENV_PROXY=1\ndsh web" }],
+      },
+      env: { HTTP_PROXY: "http://127.0.0.1:7890", NODE_USE_ENV_PROXY: "" },
+      probes: [],
+    });
+    assert.match(text, /fix:/);
+    assert.match(text, /restart-dsh-with-node-proxy/);
+    assert.match(text, /NODE_USE_ENV_PROXY=1/);
+  });
+});
+
+describe("buildFix", () => {
+  it("emits restart script when proxy is set but Node ignores it", () => {
+    const fix = buildFix(
+      { HTTP_PROXY: "http://127.0.0.1:7890", HTTPS_PROXY: "http://127.0.0.1:7890", NODE_USE_ENV_PROXY: "" },
+      [],
+      true,
+    );
+    assert.ok(fix.scripts.some((s) => s.title === "restart-dsh-with-node-proxy"));
+    assert.match(fix.scripts[0].code, /NODE_USE_ENV_PROXY=1/);
+    assert.match(fix.scripts[0].code, /dsh web/);
+  });
+
+  it("emits proxy template when probes fail and no proxy is set", () => {
+    const fix = buildFix(
+      { HTTP_PROXY: "", HTTPS_PROXY: "", NODE_USE_ENV_PROXY: "" },
+      [{ ok: false, name: "deepseek" }],
+      true,
+    );
+    assert.ok(fix.scripts.some((s) => s.title === "template-set-proxy-then-start-dsh"));
   });
 });
 
