@@ -1,5 +1,6 @@
 import {
   buildAdvice,
+  buildFix,
   formatReport,
   readEnv,
   redactEnv,
@@ -28,13 +29,13 @@ export function apply(ctx, config = {}) {
       injectChildProxy
         ? "This plugin also sets NODE_USE_ENV_PROXY=1 (and lowercase http_proxy aliases) on bash/npm child processes."
         : "Child bash/npm processes may still need NODE_USE_ENV_PROXY=1 even when this dsh process has it.",
-      "Do not guess proxy URLs or restart random services; read the tool's advice field.",
+      "Do not guess proxy URLs or restart random services; read the tool's advice and fix.scripts fields.",
     ].join(" "),
   });
 
   ctx.tools.register({
     name: "net_doctor",
-    description: "Diagnose WSL/Windows proxy and Node 24 fetch: reports HTTP_PROXY, NODE_USE_ENV_PROXY, and probes DeepSeek API and the npm registry. Use when network or API calls fail.",
+    description: "Diagnose WSL/Windows proxy and Node 24 fetch: reports HTTP_PROXY, NODE_USE_ENV_PROXY, probes DeepSeek/npm, and returns copy-paste fix scripts when something is wrong. Use when network or API calls fail.",
     parameters: {
       type: "object",
       additionalProperties: true,
@@ -52,6 +53,25 @@ export function apply(ctx, config = {}) {
         additionalProperties: false,
         properties: {
           advice: { type: "string" },
+          fix: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              steps: { type: "array", items: { type: "string" } },
+              scripts: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    title: { type: "string" },
+                    shell: { type: "string" },
+                    code: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
           env: {
             type: "object",
             additionalProperties: false,
@@ -101,6 +121,7 @@ export function apply(ctx, config = {}) {
       }
       return {
         advice: buildAdvice(env, probes, selected, injectChildProxy),
+        fix: buildFix(env, probes, injectChildProxy),
         env: redactEnv(env),
         probes,
       };

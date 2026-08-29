@@ -10,6 +10,8 @@ DeepSeek Harness **tool** plugin: `net_doctor` diagnoses why HTTPS works in the 
 
 **0.2.1** 报告里会去掉代理 URL 中的 userinfo，并带上 `ALL_PROXY`。
 
+**0.3.0** 增加 `fix`：可复制的重启 / 设代理脚本（不猜端口；有代理时复用当前 env，没有时给 `127.0.0.1:7890` 模板并注明需改）。
+
 ## Install
 
 ```sh
