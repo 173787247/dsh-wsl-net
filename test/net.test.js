@@ -6,6 +6,7 @@ import {
   childProxyEnv,
   formatReport,
   readEnv,
+  registryProbeList,
   redactEnv,
   redactSecretUrl,
   withChildProxyEnv,
@@ -60,6 +61,14 @@ describe("withChildProxyEnv", () => {
   it("returns non-objects unchanged", () => {
     assert.equal(withChildProxyEnv(null), null);
     assert.equal(withChildProxyEnv("bash"), "bash");
+  });
+});
+
+describe("registryProbeList", () => {
+  it("includes npm and modelscope for registry target", () => {
+    const list = registryProbeList({ npm_config_registry: "https://registry.npmmirror.com/" }, "registry");
+    assert.ok(list.some((p) => p.name === "npm"));
+    assert.ok(list.some((p) => p.name === "modelscope"));
   });
 });
 

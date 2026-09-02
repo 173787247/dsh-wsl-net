@@ -1,6 +1,6 @@
 {
   "name": "dsh-wsl-net",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DeepSeek Harness tool: diagnose WSL/Windows proxy, Node 24 fetch, DeepSeek/npm reachability, and copy-paste fix scripts.",
   "license": "MIT",
   "repository": {
@@ -24,6 +24,7 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
+    "README.zh.md",
     "LICENSE"
   ],
   "keywords": [

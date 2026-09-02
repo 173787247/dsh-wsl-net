@@ -4,6 +4,7 @@ import {
   formatReport,
   readEnv,
   redactEnv,
+  registryProbeList,
   withChildProxyEnv,
 } from "./lib/net.js";
 
@@ -24,7 +25,7 @@ export function apply(ctx, config = {}) {
     name: "tool:net_doctor",
     order: 116,
     text: [
-      "Use the net_doctor tool when DeepSeek API, npm, or other HTTPS calls fail from this agent.",
+      "Use the net_doctor tool when DeepSeek API, npm, ModelScope, or other HTTPS calls fail from this agent.",
       "The browser on Windows can work while WSL Node fetch does not: Node 24 ignores HTTP_PROXY unless NODE_USE_ENV_PROXY=1.",
       injectChildProxy
         ? "This plugin also sets NODE_USE_ENV_PROXY=1 (and lowercase http_proxy aliases) on bash/npm child processes."
@@ -35,15 +36,15 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register({
     name: "net_doctor",
-    description: "Diagnose WSL/Windows proxy and Node 24 fetch: reports HTTP_PROXY, NODE_USE_ENV_PROXY, probes DeepSeek/npm, and returns copy-paste fix scripts when something is wrong. Use when network or API calls fail.",
+    description: "Diagnose WSL/Windows proxy and Node 24 fetch: reports HTTP_PROXY, NODE_USE_ENV_PROXY, probes DeepSeek/npm/ModelScope, and returns copy-paste fix scripts when something is wrong. Use when network or API calls fail.",
     parameters: {
       type: "object",
       additionalProperties: true,
       properties: {
         target: {
           type: "string",
-          enum: ["all", "env", "deepseek", "npm"],
-          description: "What to check. Default all: env plus DeepSeek and npm probes.",
+          enum: ["all", "env", "deepseek", "npm", "registry", "modelscope", "huggingface"],
+          description: "What to check. Default all: env plus DeepSeek, npm, and ModelScope probes. registry = npm + ModelScope.",
         },
       },
     },
@@ -108,16 +109,15 @@ export function apply(ctx, config = {}) {
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const target = typeof args?.target === "string" ? args.target : "all";
-      const allowed = new Set(["all", "env", "deepseek", "npm"]);
+      const allowed = new Set(["all", "env", "deepseek", "npm", "registry", "modelscope", "huggingface"]);
       const selected = allowed.has(target) ? target : "all";
       const env = readEnv();
       const probes = [];
       if (selected === "all" || selected === "deepseek") {
         probes.push(await probe("deepseek", "https://api.deepseek.com/", exec.signal, probeTimeoutMs));
       }
-      if (selected === "all" || selected === "npm") {
-        const registry = env.npm_config_registry || "https://registry.npmmirror.com/";
-        probes.push(await probe("npm", registry, exec.signal, probeTimeoutMs));
+      for (const spec of registryProbeList(env, selected)) {
+        probes.push(await probe(spec.name, spec.url, exec.signal, probeTimeoutMs));
       }
       return {
         advice: buildAdvice(env, probes, selected, injectChildProxy),
