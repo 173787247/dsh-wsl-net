@@ -2,6 +2,7 @@ import {
   buildAdvice,
   buildFix,
   formatReport,
+  inspectDshWebEnv,
   probeProxyListen,
   readEnv,
   redactEnv,
@@ -114,6 +115,10 @@ export function apply(ctx, config = {}) {
               error: { type: "string" },
             },
           },
+          dshWeb: {
+            type: "object",
+            additionalProperties: true,
+          },
         },
       },
       render: (_args, value) => [{ type: "text", text: formatReport(value) }],
@@ -133,12 +138,17 @@ export function apply(ctx, config = {}) {
         probes.push(await probe(spec.name, spec.url, exec.signal, probeTimeoutMs));
       }
       const proxyListen = await probeProxyListen(env, { timeoutMs: Math.min(probeTimeoutMs, 2000) });
+      const dshWeb = inspectDshWebEnv();
+      const dshWebOut = dshWeb.env
+        ? { ok: dshWeb.ok, pid: dshWeb.pid, error: dshWeb.error || "", env: redactEnv(dshWeb.env) }
+        : { ok: dshWeb.ok, pid: dshWeb.pid, error: dshWeb.error || "", env: null };
       return {
-        advice: buildAdvice(env, probes, selected, injectChildProxy, proxyListen),
+        advice: buildAdvice(env, probes, selected, injectChildProxy, proxyListen, dshWeb),
         fix: buildFix(env, probes, injectChildProxy),
         env: redactEnv(env),
         probes,
         proxyListen,
+        dshWeb: dshWebOut,
       };
     },
     presentCall: () => ({ card: "generic", title: "Network doctor" }),
