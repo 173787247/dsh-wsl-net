@@ -17,6 +17,8 @@ Clash / V2Ray often runs on Windows with `HTTP_PROXY=http://127.0.0.1:…`. Node
 ## What it does
 
 - Reports `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY` (userinfo redacted), `NODE_USE_ENV_PROXY`, optional npm registry
+- Also inspects the **running `dsh web` process** env (`dshWeb`) so you can tell tool-process vs host-process proxy flags apart
+- TCP-probes the configured proxy port (`proxyListen`)
 - Probes DeepSeek API and the npm registry (HTTP status &lt; 500 counts as reachable, including 401)
 - Returns `advice` plus `fix.steps` / `fix.scripts` (reuses current proxy when set; otherwise a `127.0.0.1:7890` template you must edit)
 - Optionally injects `NODE_USE_ENV_PROXY=1` and lowercase `http_proxy` aliases into bash/npm **child** processes (`injectChildProxy`)

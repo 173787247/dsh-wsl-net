@@ -4,10 +4,13 @@ import {
   buildAdvice,
   buildFix,
   childProxyEnv,
+  findDshWebPid,
   formatReport,
+  parseProcEnviron,
   parseProxyEndpoint,
   probeProxyListen,
   readEnv,
+  readProcEnv,
   registryProbeList,
   redactEnv,
   redactSecretUrl,
@@ -196,5 +199,37 @@ describe("parseProxyEndpoint / probeProxyListen", () => {
     );
     assert.match(advice, /not accepting TCP/);
     assert.match(advice, /fetch failed/);
+  });
+});
+
+describe("dsh web process env", () => {
+  it("parses /proc environ and finds pid via injection", () => {
+    const raw = Buffer.from("NODE_USE_ENV_PROXY=1\0HTTP_PROXY=http://127.0.0.1:9\0OTHER=x\0");
+    const parsed = parseProcEnviron(raw);
+    assert.equal(parsed.NODE_USE_ENV_PROXY, "1");
+    assert.equal(parsed.HTTP_PROXY, "http://127.0.0.1:9");
+    assert.equal(findDshWebPid({ pgrepFn: () => "4242\n" }), 4242);
+    const got = readProcEnv(4242, {
+      readFileSyncFn: () => raw,
+    });
+    assert.equal(got.ok, true);
+    assert.equal(got.env.NODE_USE_ENV_PROXY, "1");
+  });
+
+  it("advises when dsh web host lacks NODE_USE_ENV_PROXY", () => {
+    const advice = buildAdvice(
+      { HTTP_PROXY: "", NODE_USE_ENV_PROXY: "1", WSL_DISTRO_NAME: "Ubuntu" },
+      [],
+      "env",
+      true,
+      { configured: true, open: true, host: "127.0.0.1", port: 7890, error: "" },
+      {
+        ok: true,
+        pid: 99,
+        env: { HTTP_PROXY: "http://127.0.0.1:7890", NODE_USE_ENV_PROXY: "", HTTPS_PROXY: "", NO_PROXY: "", ALL_PROXY: "", npm_config_registry: "", WSL_DISTRO_NAME: "" },
+      },
+    );
+    assert.match(advice, /pid 99/);
+    assert.match(advice, /restart-dsh-web/);
   });
 });
