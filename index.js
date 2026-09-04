@@ -2,6 +2,7 @@ import {
   buildAdvice,
   buildFix,
   formatReport,
+  probeProxyListen,
   readEnv,
   redactEnv,
   registryProbeList,
@@ -25,12 +26,12 @@ export function apply(ctx, config = {}) {
     name: "tool:net_doctor",
     order: 116,
     text: [
-      "Use the net_doctor tool when DeepSeek API, npm, ModelScope, or other HTTPS calls fail from this agent.",
+      "Use the net_doctor tool when DeepSeek API, Search, npm, ModelScope, or other HTTPS calls fail from this agent (TypeError: fetch failed is common).",
       "The browser on Windows can work while WSL Node fetch does not: Node 24 ignores HTTP_PROXY unless NODE_USE_ENV_PROXY=1.",
       injectChildProxy
         ? "This plugin also sets NODE_USE_ENV_PROXY=1 (and lowercase http_proxy aliases) on bash/npm child processes."
         : "Child bash/npm processes may still need NODE_USE_ENV_PROXY=1 even when this dsh process has it.",
-      "Do not guess proxy URLs or restart random services; read the tool's advice and fix.scripts fields.",
+      "Prefer dsh-wsl-kit scripts/restart-dsh-web.sh after fixing proxy. Do not guess proxy URLs; read advice and fix.scripts.",
     ].join(" "),
   });
 
@@ -101,6 +102,18 @@ export function apply(ctx, config = {}) {
               },
             },
           },
+          proxyListen: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              configured: { type: "boolean" },
+              open: { type: "boolean" },
+              url: { type: "string" },
+              host: { type: "string" },
+              port: { type: "integer" },
+              error: { type: "string" },
+            },
+          },
         },
       },
       render: (_args, value) => [{ type: "text", text: formatReport(value) }],
@@ -119,11 +132,13 @@ export function apply(ctx, config = {}) {
       for (const spec of registryProbeList(env, selected)) {
         probes.push(await probe(spec.name, spec.url, exec.signal, probeTimeoutMs));
       }
+      const proxyListen = await probeProxyListen(env, { timeoutMs: Math.min(probeTimeoutMs, 2000) });
       return {
-        advice: buildAdvice(env, probes, selected, injectChildProxy),
+        advice: buildAdvice(env, probes, selected, injectChildProxy, proxyListen),
         fix: buildFix(env, probes, injectChildProxy),
         env: redactEnv(env),
         probes,
+        proxyListen,
       };
     },
     presentCall: () => ({ card: "generic", title: "Network doctor" }),

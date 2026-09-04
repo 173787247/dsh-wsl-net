@@ -17,8 +17,9 @@ Clash / V2Ray 常跑在 Windows 上，环境变量是 `HTTP_PROXY=http://127.0.0
 ## 功能
 
 - 报告 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY`（隐藏 userinfo）、`NODE_USE_ENV_PROXY`、可选 npm registry
-- 探测 DeepSeek API 与 npm registry（HTTP 状态码 &lt; 500 视为可达，含 401）
-- 返回 `advice` 以及 `fix.steps` / `fix.scripts`（已有代理则复用；没有则给 `127.0.0.1:7890` 模板并注明必须改）
+- **TCP 探测代理端口**（`proxyListen`）：端口没开会直接指出
+- 探测 DeepSeek API 与 npm / ModelScope（HTTP 状态码 &lt; 500 视为可达，含 401）
+- 针对 DeepSeek Search `TypeError: fetch failed` 给出 `NODE_USE_ENV_PROXY=1` + `restart-dsh-web.sh` 修复脚本
 - 可选：给 bash/npm **子进程**注入 `NODE_USE_ENV_PROXY=1` 与小写 `http_proxy` 别名（`injectChildProxy`）
 
 **不会**打印 API Key、不会改 Clash 端口、也不会在未配置时代造一个代理 URL。

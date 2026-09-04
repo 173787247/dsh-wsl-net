@@ -5,6 +5,8 @@ import {
   buildFix,
   childProxyEnv,
   formatReport,
+  parseProxyEndpoint,
+  probeProxyListen,
   readEnv,
   registryProbeList,
   redactEnv,
@@ -81,6 +83,7 @@ describe("buildAdvice", () => {
       true,
     );
     assert.match(advice, /NODE_USE_ENV_PROXY is not 1/);
+    assert.match(advice, /fetch failed|Search|restart-dsh-web/i);
     assert.match(advice, /Env only/);
   });
 
@@ -133,7 +136,7 @@ describe("buildFix", () => {
     );
     assert.ok(fix.scripts.some((s) => s.title === "restart-dsh-with-node-proxy"));
     assert.match(fix.scripts[0].code, /NODE_USE_ENV_PROXY=1/);
-    assert.match(fix.scripts[0].code, /dsh web/);
+    assert.match(fix.scripts[0].code, /restart-dsh-web\.sh|dsh web/);
   });
 
   it("emits proxy template when probes fail and no proxy is set", () => {
@@ -161,5 +164,37 @@ describe("redactEnv", () => {
     });
     assert.equal(env.HTTP_PROXY, "http://***@127.0.0.1:7890/");
     assert.equal(env.NODE_USE_ENV_PROXY, "1");
+  });
+});
+
+describe("parseProxyEndpoint / probeProxyListen", () => {
+  it("parses host and port", () => {
+    assert.deepEqual(parseProxyEndpoint("http://127.0.0.1:16006"), {
+      host: "127.0.0.1",
+      port: 16006,
+      protocol: "http",
+    });
+  });
+
+  it("reports closed proxy port via injectable probe", async () => {
+    const listen = await probeProxyListen(
+      { HTTP_PROXY: "http://127.0.0.1:16006" },
+      { probeFn: async () => ({ open: false, error: "timeout" }) },
+    );
+    assert.equal(listen.configured, true);
+    assert.equal(listen.open, false);
+    assert.equal(listen.port, 16006);
+  });
+
+  it("mentions closed proxy in advice", () => {
+    const advice = buildAdvice(
+      { HTTP_PROXY: "http://127.0.0.1:16006", NODE_USE_ENV_PROXY: "1", WSL_DISTRO_NAME: "" },
+      [{ ok: false, name: "deepseek", error: "TypeError: fetch failed" }],
+      "all",
+      true,
+      { configured: true, open: false, host: "127.0.0.1", port: 16006, error: "timeout" },
+    );
+    assert.match(advice, /not accepting TCP/);
+    assert.match(advice, /fetch failed/);
   });
 });
