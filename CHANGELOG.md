@@ -1,3 +1,7 @@
+## 0.5.2
+
+- Detect risky Clash RFC1918/wildcard NO_PROXY; advise restart-dsh-web.sh loopback-only.
+
 # Changelog
 
 ## 0.5.1

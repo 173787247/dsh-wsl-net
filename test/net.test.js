@@ -14,6 +14,7 @@ import {
   registryProbeList,
   redactEnv,
   redactSecretUrl,
+  riskyNoProxy,
   withChildProxyEnv,
 } from "../lib/net.js";
 
@@ -230,6 +231,30 @@ describe("dsh web process env", () => {
       },
     );
     assert.match(advice, /pid 99/);
+    assert.match(advice, /restart-dsh-web/);
+  });
+});
+
+describe("riskyNoProxy", () => {
+  it("flags Clash-style RFC1918 NO_PROXY", () => {
+    assert.equal(riskyNoProxy("127.0.0.1,localhost"), false);
+    assert.equal(riskyNoProxy("10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"), true);
+    assert.equal(riskyNoProxy("*.local,10.*"), true);
+  });
+
+  it("advises loopback-only NO_PROXY when wildcards present", () => {
+    const advice = buildAdvice(
+      {
+        HTTP_PROXY: "http://127.0.0.1:7890",
+        NODE_USE_ENV_PROXY: "1",
+        NO_PROXY: "10.*,172.16.*,192.168.*",
+        WSL_DISTRO_NAME: "Ubuntu",
+      },
+      [],
+      "env",
+      true,
+    );
+    assert.match(advice, /NO_PROXY/);
     assert.match(advice, /restart-dsh-web/);
   });
 });

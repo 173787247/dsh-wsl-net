@@ -1,6 +1,6 @@
 {
   "name": "dsh-wsl-net",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Diagnose WSL/Windows proxy, Node 24 fetch, dsh web process env, proxy TCP listen, DeepSeek/npm/ModelScope reachability.",
   "license": "MIT",
   "repository": {
