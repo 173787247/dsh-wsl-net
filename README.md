@@ -9,6 +9,20 @@ Pairs with [dsh-wsl-env](https://github.com/173787247/dsh-wsl-env). Part of **[d
 [中文说明 → README.zh.md](./README.zh.md)
 
 ---
+## Compatibility
+
+| Field | Value |
+|-------|-------|
+| **Plugin** | `dsh-wsl-net` **0.5.1** |
+| **Minimum dsh** | ≥ **0.1.2** (web UI one-shot `?token=` on Windows relay `:3081`) |
+| **Latest verified** | See [dsh-wsl-kit Compatibility](https://github.com/173787247/dsh-wsl-kit#compatibility-2026-09) (currently **`0.1.5-rc.1`**) — single source of truth for the suite |
+| **Kit set** | `daily` (also in `github` / `full`; fetch+net also in `llm`) |
+| **Cloud Flash** | Use model id **`deepseek-flash`** (V4.1 Flash) in `~/.dsh/settings.yaml` / `llm-deepseek` — not configured by this plugin |
+| **Agent Teams** | Upstream experimental; not required here |
+
+Suite floor versions: kit [`check-plugin-versions.sh`](https://github.com/173787247/dsh-wsl-kit/blob/master/scripts/check-plugin-versions.sh). Fault tree: [TROUBLESHOOTING.md](https://github.com/173787247/dsh-wsl-kit/blob/master/docs/TROUBLESHOOTING.md).
+
+**Scope:** diagnoses proxy / Node 24 / DeepSeek+npm reachability for the agent process and child shells. It does **not** fix in-process `web_fetch` (use [dsh-wsl-fetch](https://github.com/173787247/dsh-wsl-fetch)). Prefer kit `restart-dsh-web.sh` so the **dsh main process** gets `NODE_USE_ENV_PROXY=1` and loopback-only `NO_PROXY`.
 
 ## Why
 
@@ -24,6 +38,8 @@ Clash / V2Ray often runs on Windows with `HTTP_PROXY=http://127.0.0.1:…`. Node
 - Optionally injects `NODE_USE_ENV_PROXY=1` and lowercase `http_proxy` aliases into bash/npm **child** processes (`injectChildProxy`)
 
 Does **not** print API keys, change Clash ports, or invent a proxy URL when none is configured.
+
+**Related:** in-process `web_fetch` failures while API works → [dsh-wsl-fetch](https://github.com/173787247/dsh-wsl-fetch). Inherited Clash `NO_PROXY=10.*` breaking DeepSeek → kit `restart-dsh-web.sh` (loopback-only `NO_PROXY`).
 
 ## Install
 
