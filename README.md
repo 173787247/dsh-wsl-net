@@ -8,12 +8,24 @@ Pairs with [dsh-wsl-env](https://github.com/173787247/dsh-wsl-env). Part of **[d
 
 [中文说明 → README.zh.md](./README.zh.md)
 
+## Where it sits
+
+Diagnoses why the Windows browser can reach HTTPS while the WSL agent cannot. In-process page fetch is dsh-wsl-fetch, not this plugin.
+
+```mermaid
+flowchart LR
+  agent["dsh agent"] --> tool["net_doctor"] --> net["proxy, DeepSeek, npm"]
+```
+
+Suite diagram and version snapshot: [dsh-wsl-kit](https://github.com/173787247/dsh-wsl-kit#how-the-pieces-fit). This plugin is **0.5.2** (daily; also in llm). Do not copy that matrix into this README.
+
+
 ---
 ## Compatibility
 
 | Field | Value |
 |-------|-------|
-| **Plugin** | `dsh-wsl-net` **0.5.1** |
+| **Plugin** | `dsh-wsl-net` **0.5.2** |
 | **Minimum dsh** | ≥ **0.1.2** (web UI one-shot `?token=` on Windows relay `:3081`) |
 | **Latest verified** | See [dsh-wsl-kit Compatibility](https://github.com/173787247/dsh-wsl-kit#compatibility-2026-09) (currently **`0.1.5-rc.1`**) — single source of truth for the suite |
 | **Kit set** | `daily` (also in `github` / `full`; fetch+net also in `llm`) |

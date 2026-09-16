@@ -8,12 +8,24 @@ DeepSeek Harness **工具**插件：`net_doctor` 诊断「Windows 浏览器 HTTP
 
 [English → README.md](./README.md)
 
+## 在套件里的位置
+
+诊断为什么 Windows 浏览器能上 HTTPS，WSL 里的 agent 却不行。进程内抓页是 dsh-wsl-fetch，不是本插件。
+
+```mermaid
+flowchart LR
+  agent["dsh agent"] --> tool["net_doctor"] --> net["代理、DeepSeek、npm"]
+```
+
+整套关系图和版本快照：[dsh-wsl-kit 中文说明](https://github.com/173787247/dsh-wsl-kit/blob/master/README.zh.md)。本插件是 **0.5.2**（daily，也在 llm）。不要把那份总表抄进本 README。
+
+
 ---
 ## 兼容性
 
 | 项 | 值 |
 |----|----|
-| **插件** | `dsh-wsl-net` **0.5.1** |
+| **插件** | `dsh-wsl-net` **0.5.2** |
 | **最低 dsh** | ≥ **0.1.2**（Windows 中继 `:3081` 一次性 `?token=`） |
 | **最新验证** | 以 [dsh-wsl-kit 兼容性](https://github.com/173787247/dsh-wsl-kit#compatibility-2026-09) 为准（当前 **`0.1.5-rc.1`**）— 套件唯一真源 |
 | **套件档位** | `daily`（亦含于 `github` / `full`；fetch+net 亦在 `llm`） |
